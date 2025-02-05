@@ -49,7 +49,8 @@ app.get('/', (req, res) => {
 });
 
 app.post('/post', async (req, res) => {
-  console.log('Received data:', req.body);
+  console.log('Received data:', req.body); // Log the received data
+
   const { Name } = req.body;
 
   try {
@@ -69,15 +70,16 @@ const itemSchema = new mongoose.Schema({
   itemDescription: { type: String, required: true, unique: true, trim: true },
   itemPrice: { type: Number, required: true, trim: true },
   discPrice: { type: Number, required: true, trim: true },
-  itemCategory: { type: String, required: true, trim: true },
+  itemCategory: { type: mongoose.Schema.Types.ObjectId, ref: 'category_master', required: true }, // Updated to reference category
   itemImage: { type: String, required: true, trim: true },
 });
 const item = mongoose.model('item_master', itemSchema);
 
 app.get('/items', async (req, res) => {
     try {
-        const items = await item.find({});
+        const items = await item.find({}).populate('itemCategory', 'Name');
         res.json(items);
+
     } catch (error) {
         console.error('Error fetching items:', error);
         res.status(500).send('Error fetching items. Please try again later.');
@@ -170,6 +172,37 @@ app.get('/categories', async (req, res) => {
     } catch (error) {
         console.error('Error fetching categories:', error);
         res.status(500).send('Error fetching categories. Please try again later.');
+    }
+});
+
+app.put('/edit/:id', async (req, res) => {
+    const categoryId = req.params.id;
+    const { name } = req.body;
+
+    try {
+        const updatedCategory = await categoryadd.findByIdAndUpdate(categoryId, { Name: name }, { new: true });
+        if (!updatedCategory) {
+            return res.status(404).send('Category not found');
+        }
+        res.json({ success: true, updatedCategory });
+    } catch (error) {
+        console.error('Error updating category:', error);
+        res.status(500).send('Error updating category. Please try again later.');
+    }
+});
+
+app.delete('/delete/:id', async (req, res) => {
+    const categoryId = req.params.id;
+
+    try {
+        const deletedCategory = await categoryadd.findByIdAndDelete(categoryId);
+        if (!deletedCategory) {
+            return res.status(404).send('Category not found');
+        }
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting category:', error);
+        res.status(500).send('Error deleting category. Please try again later.');
     }
 });
 
